@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"log"
@@ -14,8 +15,14 @@ func main() {
 	if len(os.Args) < 2 {
 		log.Fatalf("Usage: %s <filename.xlsx>\n", os.Args[0])
 	}
-	filename := os.Args[1]
-	factor := 1.175
+
+	var sellFactor = flag.Float64("factor", 1.0, "Multiplication factor for Sell price")
+	flag.Parse()
+
+	if flag.NArg() < 1 {
+		log.Fatalf("Usage: %s [--factor 1.3] <filename.xlsx>\n", os.Args[0])
+	}
+	filename := flag.Arg(0)
 
 	f, err := excelize.OpenFile(filename)
 	if err != nil {
@@ -43,7 +50,7 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Description,Qty,List,Disc,Net,Total,Fact,Sell\n")
+	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
@@ -69,9 +76,9 @@ func main() {
 			}
 			desc = csvEscape(desc)
 
-			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f\n",
+			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
 				linepos, offer, date, customer, rate,
-				sku, desc, qty, list, disc, net, total, factor, net*factor,
+				sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc,
 			)
 		}
 

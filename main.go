@@ -17,10 +17,15 @@ func main() {
 	}
 
 	var sellFactor = flag.Float64("factor", 1.0, "Multiplication factor for Sell price")
+	var markFlag = flag.Bool("po", false, "add --po if quote was purchased")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
 		log.Fatalf("Usage: %s [--factor 1.3] <filename.xlsx>\n", os.Args[0])
+	}
+	purchased := "no"
+	if *markFlag {
+		purchased = "yes"
 	}
 	filename := flag.Arg(0)
 
@@ -50,7 +55,7 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
+	fmt.Fprintf(output, "Pos,Quote,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
@@ -76,8 +81,8 @@ func main() {
 			}
 			desc = csvEscape(desc)
 
-			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
-				linepos, offer, date, customer, rate,
+			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
+				linepos, offer, date, purchased, customer, rate,
 				sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc,
 			)
 		}

@@ -15,6 +15,7 @@ func main() {
 		log.Fatalf("Usage: %s <filename.xlsx>\n", os.Args[0])
 	}
 	filename := os.Args[1]
+	factor := 1.175
 
 	f, err := excelize.OpenFile(filename)
 	if err != nil {
@@ -42,7 +43,7 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Description,Qty,List,Disc,Net,Total\n")
+	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Description,Qty,List,Disc,Net,Total,Fact,Sell\n")
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
@@ -50,13 +51,13 @@ func main() {
 		// Check if column B (index 1) has a number → this is a line item
 		if len(row) > 2 && isInteger(row[1]) {
 			linepos := safeGet(row, 1)
-			sku := safeGet(row, 3)                // column A
-			desc := safeGet(row, 4)               // column C (index 2)
-			qty := cleanNumber(safeGet(row, 5))   // column D
-			list := cleanNumber(safeGet(row, 6))  // column E
-			disc := cleanNumber(safeGet(row, 7))  // column F
-			net := cleanNumber(safeGet(row, 8))   // column G
-			total := cleanNumber(safeGet(row, 9)) // column H
+			sku := safeGet(row, 3)                    // column A
+			desc := safeGet(row, 4)                   // column C (index 2)
+			qty := cleanNumber(safeGet(row, 5))       // column D
+			list := cleanNumber(safeGet(row, 6))      // column E
+			disc := cleanNumber(safeGet(row, 7))      // column F
+			net, _ := parseUSDecimal(safeGet(row, 8)) // column G
+			total := cleanNumber(safeGet(row, 9))     // column H
 
 			// Check for an extra info row just after this
 			if i+1 < len(rows) {
@@ -68,9 +69,9 @@ func main() {
 			}
 			desc = csvEscape(desc)
 
-			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f\n",
 				linepos, offer, date, customer, rate,
-				sku, desc, qty, list, disc, net, total,
+				sku, desc, qty, list, disc, net, total, factor, net*factor,
 			)
 		}
 
@@ -110,4 +111,9 @@ func csvEscape(s string) string {
 	}
 
 	return s
+}
+
+func parseUSDecimal(s string) (float64, error) {
+	cleaned := strings.ReplaceAll(s, ",", "") // remove thousands
+	return strconv.ParseFloat(cleaned, 64)
 }

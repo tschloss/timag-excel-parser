@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 func main() {
@@ -40,27 +42,72 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Quote,Date,Customer,Rate,Pos,SKU,Description,Qty,List,Disc,Net,Total\n")
+	fmt.Fprintf(output, "Pos,Quote,Date,Customer,Rate,SKU,Description,Qty,List,Disc,Net,Total\n")
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
-		if len(row) < 7 {
-			continue
-		}
 
-		desc := row[4]
-		// look ahead for extra info
-		if i+1 < len(rows) {
-			next := rows[i+1]
-			if len(next) > 1 && next[2] == "" && next[3] == "" && next[1] != "" {
-				desc += " [" + next[4] + "]"
-				i++ // skip the extra info row
+		// Check if column B (index 1) has a number → this is a line item
+		if len(row) > 2 && isInteger(row[1]) {
+			linepos := safeGet(row, 1)
+			sku := safeGet(row, 3)                // column A
+			desc := safeGet(row, 4)               // column C (index 2)
+			qty := cleanNumber(safeGet(row, 5))   // column D
+			list := cleanNumber(safeGet(row, 6))  // column E
+			disc := cleanNumber(safeGet(row, 7))  // column F
+			net := cleanNumber(safeGet(row, 8))   // column G
+			total := cleanNumber(safeGet(row, 9)) // column H
+
+			// Check for an extra info row just after this
+			if i+1 < len(rows) {
+				next := rows[i+1]
+				if len(next) > 4 && next[1] == "" && next[4] != "" {
+					desc += " [" + next[4] + "]"
+					i++ // skip the extra info row
+				}
 			}
+			desc = csvEscape(desc)
+
+			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+				linepos, offer, date, customer, rate,
+				sku, desc, qty, list, disc, net, total,
+			)
 		}
 
-		fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-			offer, date, customer, rate,
-			row[1], row[3], desc, row[5], row[6], row[7], row[8], row[9],
-		)
 	}
+}
+
+func isInteger(s string) bool {
+	s = strings.TrimSpace(s)
+	_, err := strconv.Atoi(s)
+	return err == nil
+}
+
+func safeGet(row []string, index int) string {
+	if index < len(row) {
+		return strings.TrimSpace(row[index])
+	}
+	return ""
+}
+
+func cleanNumber(s string) string {
+	s = strings.ReplaceAll(s, `,`, ``)
+	return s
+}
+
+func csvEscape(s string) string {
+	// Replace CR/LF with literal separator
+	s = strings.ReplaceAll(s, "\r\n", " | ")
+	s = strings.ReplaceAll(s, "\n", " | ")
+	s = strings.ReplaceAll(s, "\r", " | ")
+
+	// Escape quotes
+	s = strings.ReplaceAll(s, `"`, `""`)
+
+	// Wrap in quotes if needed
+	if strings.ContainsAny(s, `",`) {
+		s = `"` + s + `"`
+	}
+
+	return s
 }

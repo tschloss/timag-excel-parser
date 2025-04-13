@@ -45,7 +45,7 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Pos,Quote,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
+	fmt.Fprintf(output, "Quote,Pos,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
@@ -72,7 +72,7 @@ func main() {
 			desc = csvEscape(desc)
 
 			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
-				linepos, headerFields[0], headerFields[1], purchased, headerFields[2], headerFields[3],
+				headerFields[0], linepos, headerFields[1], purchased, headerFields[2], headerFields[3],
 				sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc,
 			)
 		}
@@ -139,7 +139,11 @@ func findValues(f *excelize.File, sheet string) ([]string, error) {
 			if strings.Contains(cell, "Endkunde") && len(row) > i+1 {
 				values[2] = row[i+1]
 			}
-			if strings.Contains(cell, "EZB") {
+			if strings.Contains(cell, "USD Referenzkurs der EZB von 1 EUR") {
+				cell = strings.ReplaceAll(cell, "\n", " ")
+				//cell = strings.ReplaceAll(cell, "\r", " ")
+				//fmt.Printf("%q\n", cell)
+				//fmt.Printf("%#v\n", []byte(cell))
 				rate := ""
 				match := re.FindString(cell)
 				if match != "" {

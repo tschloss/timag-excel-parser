@@ -37,16 +37,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	date, _ := f.GetCellValue("TIM Angebot", "G9")      // adjust as needed
-	offer, _ := f.GetCellValue("TIM Angebot", "G8")     // adjust
-	customer, _ := f.GetCellValue("TIM Angebot", "G24") // adjust
-	ratetext, _ := f.GetCellValue("TIM Angebot", "B4")  // adjust
+	date, _ := f.GetCellValue("TIM Angebot", "E9")      // adjust as needed
+	offer, _ := f.GetCellValue("TIM Angebot", "E8")     // adjust
+	customer, _ := f.GetCellValue("TIM Angebot", "E24") // adjust
+	ratetext, _ := f.GetCellValue("TIM Angebot", "B34") // adjust
 
 	rate := ""
-	re := regexp.MustCompile(`\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s?[A-Z]{3}`)
+	//re := regexp.MustCompile(`\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s?[A-Z]{3}`)
+	re := regexp.MustCompile(`\d[.,]\d{3} USD`)
 	match := re.FindString(ratetext)
 	if match != "" {
-		rate = match
+		rate = strings.ReplaceAll(match[:5], `,`, `.`)
 	}
 
 	rows, err := f.GetRows("TIM Angebotszeilen")

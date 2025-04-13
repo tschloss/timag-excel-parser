@@ -37,18 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	date, _ := f.GetCellValue("TIM Angebot", "E9")      // adjust as needed
-	offer, _ := f.GetCellValue("TIM Angebot", "E8")     // adjust
-	customer, _ := f.GetCellValue("TIM Angebot", "E24") // adjust
-	ratetext, _ := f.GetCellValue("TIM Angebot", "B34") // adjust
-
-	rate := ""
-	//re := regexp.MustCompile(`\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s?[A-Z]{3}`)
-	re := regexp.MustCompile(`\d[.,]\d{3} USD`)
-	match := re.FindString(ratetext)
-	if match != "" {
-		rate = strings.ReplaceAll(match[:5], `,`, `.`)
-	}
+	headerFields, _ := findValues(f, "TIM Angebot") // adjust as needed
 
 	rows, err := f.GetRows("TIM Angebotszeilen")
 	if err != nil {
@@ -83,7 +72,7 @@ func main() {
 			desc = csvEscape(desc)
 
 			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
-				linepos, offer, date, purchased, customer, rate,
+				linepos, headerFields[0], headerFields[1], purchased, headerFields[2], headerFields[3],
 				sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc,
 			)
 		}
@@ -129,4 +118,39 @@ func csvEscape(s string) string {
 func parseUSDecimal(s string) (float64, error) {
 	cleaned := strings.ReplaceAll(s, ",", "") // remove thousands
 	return strconv.ParseFloat(cleaned, 64)
+}
+
+func findValues(f *excelize.File, sheet string) ([]string, error) {
+	values := []string{"?", "?", "?", "1"}
+	rows, err := f.GetRows(sheet)
+	if err != nil {
+		return values, err
+	}
+	re := regexp.MustCompile(`\d[.,]\d{2,4}\sUSD`)
+	for _, row := range rows {
+		for i, cell := range row {
+			if (cell == "Angebots-Nr." || cell == "Angebots Nr.") && len(row) > i+1 {
+				values[0] = row[i+1]
+			}
+			if (cell == "Angebotsdatum" || cell == "Angebots Datum") && len(row) > i+1 {
+				values = append(values, row[i+1])
+				values[1] = row[i+1]
+			}
+			if strings.Contains(cell, "Endkunde") && len(row) > i+1 {
+				values[2] = row[i+1]
+			}
+			if strings.Contains(cell, "EZB") {
+				rate := ""
+				match := re.FindString(cell)
+				if match != "" {
+					rate = strings.ReplaceAll(match[:5], `,`, `.`)
+				} else {
+					rate = "?"
+				}
+				values[3] = rate
+			}
+		}
+	}
+
+	return values, nil
 }

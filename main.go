@@ -18,6 +18,7 @@ func main() {
 
 	var sellFactor = flag.Float64("factor", 1.0, "Multiplication factor for Sell price")
 	var markFlag = flag.Bool("po", false, "add --po if quote was purchased")
+	var verbose = flag.Bool("v", false, "add --v to get beater readability instead of csv")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -45,7 +46,12 @@ func main() {
 	}
 
 	output := os.Stdout // or os.Create("output.csv")
-	fmt.Fprintf(output, "Quote,Pos,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
+	if *verbose {
+		fmt.Fprintf(output, "%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %.3f\n",
+			"quote", headerFields[0], "date", headerFields[1], "po", purchased, "customer", headerFields[2], "xchg-rate", headerFields[3], "uplift", *sellFactor)
+	} else {
+		fmt.Fprintf(output, "Quote,Pos,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
+	}
 
 	for i := 0; i < len(rows); i++ {
 		row := rows[i]
@@ -71,10 +77,14 @@ func main() {
 			}
 			desc = csvEscape(desc)
 
-			fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
-				headerFields[0], linepos, headerFields[1], purchased, headerFields[2], headerFields[3],
-				sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc,
-			)
+			if *verbose {
+				fmt.Fprintf(output, "# %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %.2f\n%-10s: %s\n%-10s: %.2f\n%-10s: %s\n",
+					linepos, "   SKU", sku, "   qty", qty, "   list", list, "   disc", disc, "   net", net, "   total", total, "   sell", net*(*sellFactor), "   desc", desc)
+			} else {
+				fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
+					headerFields[0], linepos, headerFields[1], purchased, headerFields[2], headerFields[3],
+					sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc)
+			}
 		}
 
 	}

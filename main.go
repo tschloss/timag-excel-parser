@@ -64,7 +64,7 @@ func main() {
 			// Check for an extra info row just after this
 			if i+1 < len(rows) {
 				next := rows[i+1]
-				if len(next) > 4 && next[1] == "" && next[4] != "" {
+				if len(next) > 4 && ((next[1] == "" && next[4] != "" && next[4] != "Gesamtsumme:") || next[3] == "TERM-MONTHS") {
 					desc += " [" + next[4] + "]"
 					i++ // skip the extra info row
 				}
@@ -132,7 +132,7 @@ func findValues(f *excelize.File, sheet string) ([]string, error) {
 			if (cell == "Angebots-Nr." || cell == "Angebots Nr.") && len(row) > i+1 {
 				values[0] = row[i+1]
 			}
-			if (cell == "Angebotsdatum" || cell == "Angebots Datum") && len(row) > i+1 {
+			if (cell == "Angebotsdatum" || cell == "Angebots Datum" || cell == "Datum") && len(row) > i+1 {
 				values = append(values, row[i+1])
 				values[1] = row[i+1]
 			}

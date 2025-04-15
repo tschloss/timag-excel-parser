@@ -6,6 +6,7 @@ import (
 	"github.com/xuri/excelize/v2"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ func main() {
 	var sellFactor = flag.Float64("factor", 1.0, "Multiplication factor for Sell price")
 	var markFlag = flag.Bool("po", false, "add --po if quote was purchased")
 	var verbose = flag.Bool("v", false, "add --v to get beater readability instead of csv")
+	var toFile = flag.Bool("tofile", false, "Output to csv file in source directory (defaults to stdout)")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -29,6 +31,15 @@ func main() {
 		purchased = "yes"
 	}
 	filename := flag.Arg(0)
+	output := os.Stdout // or os.Create("output.csv")
+	if *toFile {
+		if *verbose {
+			output = prepareOutFile(filename, ".txt")
+		} else {
+			output = prepareOutFile(filename, ".csv")
+		}
+		defer output.Close()
+	}
 
 	f, err := excelize.OpenFile(filename)
 	if err != nil {
@@ -45,7 +56,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	output := os.Stdout // or os.Create("output.csv")
 	if *verbose {
 		fmt.Fprintf(output, "%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %.3f\n",
 			"quote", headerFields[0], "date", headerFields[1], "po", purchased, "customer", headerFields[2], "xchg-rate", headerFields[3], "uplift", *sellFactor)
@@ -167,4 +177,23 @@ func findValues(f *excelize.File, sheet string) ([]string, error) {
 	}
 
 	return values, nil
+}
+
+func prepareOutFile(inputFile string, ext string) *os.File {
+	outputFile := filepath.Base(inputFile)
+	outputFile = outputFile[:len(outputFile)-len(filepath.Ext(outputFile))] + ext
+	fmt.Fprintln(os.Stderr, "Writing to:", outputFile)
+
+	// Decide where to write
+	var out *os.File
+	var err error
+
+	out, err = os.Create(outputFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not create output file: %v\n", err)
+		os.Exit(1)
+	}
+
+	return out
+
 }

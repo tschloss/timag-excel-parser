@@ -31,6 +31,7 @@ func main() {
 		purchased = "yes"
 	}
 	filename := flag.Arg(0)
+	shortLocation := extractSegments(filename)
 	output := os.Stdout // or os.Create("output.csv")
 	if *toFile {
 		if *verbose {
@@ -60,7 +61,7 @@ func main() {
 		fmt.Fprintf(output, "%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %.3f\n",
 			"quote", headerFields[0], "date", headerFields[1], "po", purchased, "customer", headerFields[2], "xchg-rate", headerFields[3], "uplift", *sellFactor)
 	} else {
-		fmt.Fprintf(output, "Quote,Pos,Date,PO,Customer,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
+		fmt.Fprintf(output, "Quote,Pos,Date,PO,Customer,Loc,Rate,SKU,Qty,List,Disc,Net,Total,Fact,Sell,Description\n")
 	}
 
 	for i := 0; i < len(rows); i++ {
@@ -91,8 +92,8 @@ func main() {
 				fmt.Fprintf(output, "# %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %s\n%-10s: %.2f\n%-10s: %s\n%-10s: %.2f\n%-10s: %s\n",
 					linepos, "   SKU", sku, "   qty", qty, "   list", list, "   disc", disc, "   net", net, "   total", total, "   sell", net*(*sellFactor), "   desc", desc)
 			} else {
-				fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
-					headerFields[0], linepos, headerFields[1], purchased, headerFields[2], headerFields[3],
+				fmt.Fprintf(output, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.2f,%s,%.3f,%.2f,%s\n",
+					headerFields[0], linepos, headerFields[1], purchased, headerFields[2], shortLocation, headerFields[3],
 					sku, qty, list, disc, net, total, *sellFactor, net*(*sellFactor), desc)
 			}
 		}
@@ -194,5 +195,28 @@ func prepareOutFile(inputFile string, ext string) *os.File {
 	}
 
 	return out
+}
 
+func extractSegments(input string) string {
+
+	absPath, err := filepath.Abs(input)
+	if err != nil {
+		panic(err)
+	}
+
+	dir := filepath.Dir(absPath)
+	parts := strings.Split(filepath.ToSlash(dir), "/")
+
+	n := len(parts)
+	lastTwo := strings.Join(parts[max(0, n-2):], "/")
+
+	return lastTwo
+}
+
+// helper for max
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

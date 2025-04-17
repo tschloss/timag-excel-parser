@@ -180,8 +180,7 @@ func findValues(f *excelize.File, sheet string) ([]string, error) {
 }
 
 func prepareOutFile(inputFile string, ext string) *os.File {
-	outputFile := filepath.Base(inputFile)
-	outputFile = outputFile[:len(outputFile)-len(filepath.Ext(outputFile))] + ext
+	outputFile := inputFile[:len(inputFile)-len(filepath.Ext(inputFile))] + ext
 	fmt.Fprintln(os.Stderr, "Writing to:", outputFile)
 
 	// Decide where to write
